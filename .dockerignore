@@ -1,0 +1,15 @@
+node_modules
+dist
+.git
+.github
+*.log
+.env
+.env.*
+!.env.example
+coverage
+.nyc_output
+uploads
+uploads-file
+*.md
+.eslintrc*
+.prettierrc*

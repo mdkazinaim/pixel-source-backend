@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: auto-scripting-backend
+    runtime: node
+    plan: starter
+    buildCommand: npm install && npx prisma generate
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: PUPPETEER_CACHE_DIR
+        value: /opt/render/project/src/.cache/puppeteer
+      - key: API_PREFIX
+        value: api/v1
+    # Note: On Render's Free plan, Puppeteer might struggle without enough RAM.
+    # We use a build script to ensure Chromium is installed or handle dependencies.

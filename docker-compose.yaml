@@ -1,0 +1,105 @@
+# ──────────────────────────────────────────────────────────────
+# docker-compose.yaml  –  production (--profile prod) &
+#                         local dev DB only (--profile dev)
+# ──────────────────────────────────────────────────────────────
+
+services:
+  # ── Application Server ─────────────────────────────────────
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: sakib/dynamic-scraper:latest
+    container_name: dynamic-scraper_server
+    profiles: [prod]
+    restart: always
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    volumes:
+      - uploads:/usr/src/app/uploads
+      - uploads_file:/usr/src/app/uploads-file
+    ports:
+      - "${HOST_PORT:-3001}:3000"
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/api/v1/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ── PostgreSQL ──────────────────────────────────────────────
+  db:
+    image: postgres:15-alpine
+    container_name: dynamic-scraper_db
+    restart: always
+    profiles: [prod, dev]
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ── Redis ───────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: dynamic-scraper_redis
+    restart: always
+    profiles: [prod, dev]
+    ports:
+      - "${REDIS_HOST_PORT:-6380}:6379"
+    volumes:
+      - redisdata:/data
+    networks:
+      - app_network
+    command: redis-server --appendonly yes
+
+  # ── DB Setup (dev only: push schema + seed) ─────────────────
+  db-setup:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dynamic-scraper_db_setup
+    profiles: [dev]
+    env_file: .env
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+    networks:
+      - app_network
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}?schema=public
+    command: >
+      bash -c "
+        echo '🚀 Running DB setup...';
+        npx prisma generate;
+        npx prisma db push --accept-data-loss;
+        npx ts-node prisma/seeds/index.ts 2>/dev/null || echo '⚠️  No seed file found, skipping.';
+        echo '✅ DB setup complete!';
+      "
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  uploads_file:
+
+networks:
+  app_network:
+    driver: bridge

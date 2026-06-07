@@ -1,0 +1,24 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ScrapedData {
+  id        String   @id @default(uuid())
+  url       String
+  type      String   // image, video, link, h1
+  content   String
+  createdAt DateTime @default(now())
+}
