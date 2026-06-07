@@ -1,0 +1,9 @@
+{
+  "experimentalServices": {
+    "auto-scripting-backend": {
+      "type": "web",
+      "routePrefix": "/",
+      "buildCommand": "npm install && npx prisma generate"
+    }
+  }
+}
