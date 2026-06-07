@@ -1,4 +1,4 @@
-import { Controller, Post, Body, BadRequestException, Res } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Res, Get, Query } from '@nestjs/common';
 import { ScraperService } from './scraper.service';
 import { Response } from 'express';
 
@@ -46,6 +46,24 @@ export class ScraperController {
       await this.scraperService.createZip(urls, res);
     } catch (error) {
       throw new BadRequestException(`Failed to create ZIP: ${error.message}`);
+    }
+  }
+
+  /**
+   * Endpoint to proxy single media download to bypass CORS restrictions.
+   * @param url The media URL to download
+   * @param res The response stream
+   */
+  @Get('download-single')
+  async downloadSingle(@Query('url') url: string, @Res() res: Response) {
+    if (!url) {
+      throw new BadRequestException('URL is required');
+    }
+
+    try {
+      await this.scraperService.proxyDownload(url, res);
+    } catch (error) {
+      throw new BadRequestException(`Failed to download file: ${error.message}`);
     }
   }
 }

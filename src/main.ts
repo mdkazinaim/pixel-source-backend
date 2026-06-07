@@ -12,7 +12,7 @@ async function bootstrap() {
   const port = process.env.PORT || configService.get<number>('APP_PORT') || 3000;
 
   app.setGlobalPrefix(prefix);
-  app.enableCors();
+  app.enableCors({ origin: ['https://pixel-source.vercel.app', 'http://localhost:3001'] });
   app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
 
   await app.listen(port);

@@ -262,4 +262,52 @@ export class ScraperService {
 
     await archive.finalize();
   }
+
+  /**
+   * Proxies a single media download by streaming it to bypass CORS restrictions.
+   * @param url Media URL to proxy
+   * @param res Express Response object to pipe the stream to
+   */
+  async proxyDownload(url: string, res: Response) {
+    try {
+      const response = await axios.get(url, { responseType: 'stream', timeout: 15000 });
+      
+      const rawContentType = response.headers['content-type'];
+      const contentType = rawContentType ? String(rawContentType) : '';
+
+      // Extract original filename or create one
+      let filename = 'downloaded-media';
+      try {
+        const parsedUrl = new URL(url);
+        const pathname = parsedUrl.pathname;
+        const lastSegment = pathname.substring(pathname.lastIndexOf('/') + 1);
+        if (lastSegment && lastSegment.includes('.')) {
+          filename = lastSegment.split(/\#|\?/)[0];
+        } else {
+          let extension = 'jpg';
+          if (contentType.includes('video/mp4')) extension = 'mp4';
+          else if (contentType.includes('image/png')) extension = 'png';
+          else if (contentType.includes('image/webp')) extension = 'webp';
+          else if (contentType.includes('image/gif')) extension = 'gif';
+          filename = `media_${Date.now()}.${extension}`;
+        }
+      } catch {
+        let extension = 'jpg';
+        if (contentType.includes('video/mp4')) extension = 'mp4';
+        else if (contentType.includes('image/png')) extension = 'png';
+        else if (contentType.includes('image/webp')) extension = 'webp';
+        else if (contentType.includes('image/gif')) extension = 'gif';
+        filename = `media_${Date.now()}.${extension}`;
+      }
+
+      // Forward response headers
+      res.setHeader('Content-Type', contentType || 'application/octet-stream');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      
+      response.data.pipe(res);
+    } catch (error) {
+      this.logger.error(`Failed to proxy download for ${url}: ${error.message}`);
+      throw error;
+    }
+  }
 }
