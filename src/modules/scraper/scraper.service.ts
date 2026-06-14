@@ -175,13 +175,13 @@ export class ScraperService {
       await page.evaluate(async () => {
         await new Promise((resolve) => {
           let totalHeight = 0;
-          const distance = 100;
+          const distance = 300; // Increased distance for faster scrolling
           const timer = setInterval(() => {
             const scrollHeight = document.body.scrollHeight;
             window.scrollBy(0, distance);
             totalHeight += distance;
 
-            if (totalHeight >= scrollHeight || totalHeight > 5000) { // Limit to 5k pixels or end
+            if (totalHeight >= scrollHeight || totalHeight > 20000) { // Limit to 20k pixels to fetch more images
               clearInterval(timer);
               resolve(true);
             }
@@ -228,7 +228,12 @@ export class ScraperService {
           }
         });
 
-        return Array.from(results);
+        return Array.from(results).filter(url => {
+          // Filter out user avatars and unrelated small UI images
+          if (url.includes('cdn.pixabay.com/user/')) return false;
+          if (url.includes('avatar') || url.includes('profile')) return false;
+          return true;
+        });
       });
 
       // Extract Links
