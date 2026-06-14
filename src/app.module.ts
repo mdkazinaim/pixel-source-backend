@@ -18,3 +18,4 @@ import { ScraperModule } from './modules/scraper/scraper.module';
   providers: [],
 })
 export class AppModule {}
+
