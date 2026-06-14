@@ -61,6 +61,10 @@ ENV PUPPETEER_CACHE_DIR=/usr/src/app/.cache/puppeteer
 EXPOSE 3000
 
 CMD ["bash", "-c", "\
+  if [ -z \"$DATABASE_URL\" ]; then \
+    echo '❌ ERROR: DATABASE_URL is not set. Exiting...'; \
+    exit 1; \
+  fi; \
   echo '⏳ Waiting for Database...'; \
   until pg_isready -d \"$DATABASE_URL\"; do sleep 2; done; \
   echo '⚙️  Generating Prisma Client...'; \
