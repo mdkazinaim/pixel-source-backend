@@ -9,7 +9,7 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
 
   const prefix = configService.get<string>('API_PREFIX') || 'api/v1';
-  const port = process.env.PORT || configService.get<number>('APP_PORT') || 3000;
+  const port = process.env.APP_PORT || process.env.PORT || configService.get<number>('APP_PORT') || 43921;
 
   app.setGlobalPrefix(prefix);
   app.enableCors({ origin: '*' });

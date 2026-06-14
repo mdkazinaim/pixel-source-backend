@@ -74,8 +74,73 @@ export class ScraperService {
   private async performScrape(url: string) {
     this.logger.log(`🔍 Scraping URL: ${url}`);
 
+    let executablePath;
+    const os = require('os');
+    const fs = require('fs');
+    const path = require('path');
+    
+    const platform = os.platform();
+    let pathsToCheck = [];
+
+    const bundledBrowsersDir = process.env.BUNDLED_BROWSERS_DIR;
+    if (bundledBrowsersDir) {
+      if (platform === 'win32') {
+        pathsToCheck.push(path.join(bundledBrowsersDir, 'win64', 'chrome.exe'));
+      } else if (platform === 'linux') {
+        pathsToCheck.push(path.join(bundledBrowsersDir, 'linux', 'chrome'));
+      }
+    }
+
+    if (platform === 'win32') {
+      const localAppData = process.env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
+      const programFiles = process.env.PROGRAMFILES || 'C:\\Program Files';
+      const programFilesX86 = process.env['PROGRAMFILES(X86)'] || 'C:\\Program Files (x86)';
+
+      pathsToCheck = [
+        path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+        path.join(programFilesX86, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+        path.join(programFiles, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+        path.join(localAppData, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+      ];
+    } else if (platform === 'darwin') {
+      pathsToCheck = [
+        '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+        '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge'
+      ];
+    } else {
+      pathsToCheck = [
+        '/usr/bin/google-chrome',
+        '/usr/bin/google-chrome-stable',
+        '/usr/bin/chromium',
+        '/usr/bin/chromium-browser',
+        '/snap/bin/chromium',
+        '/snap/bin/google-chrome'
+      ];
+    }
+
+    for (const p of pathsToCheck) {
+      if (fs.existsSync(p)) {
+        executablePath = p;
+        break;
+      }
+    }
+
+    let defaultExecutablePath;
+    try {
+      defaultExecutablePath = puppeteer.executablePath();
+    } catch (e) {
+      defaultExecutablePath = undefined;
+    }
+
+    if (!executablePath && !defaultExecutablePath) {
+      throw new Error('Google Chrome or Microsoft Edge is required but was not found on this system. Please install Google Chrome to use this application.');
+    }
+
     const browser = await puppeteer.launch({
       headless: true,
+      executablePath: executablePath || defaultExecutablePath,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
