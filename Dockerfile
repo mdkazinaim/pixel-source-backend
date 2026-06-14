@@ -15,6 +15,7 @@ USER node
 COPY --chown=node:node package*.json ./
 COPY --chown=node:node prisma ./prisma
 
+ENV PUPPETEER_CACHE_DIR=/usr/src/app/.cache/puppeteer
 RUN npm ci --fetch-retries=5 --fetch-retry-mintimeout=20000 --fetch-retry-maxtimeout=120000
 
 COPY --chown=node:node . .
@@ -52,8 +53,10 @@ COPY --from=builder --chown=node:node /usr/src/app/dist        ./dist
 COPY --from=builder --chown=node:node /usr/src/app/node_modules ./node_modules
 COPY --from=builder --chown=node:node /usr/src/app/prisma      ./prisma
 COPY --from=builder --chown=node:node /usr/src/app/package*.json ./
+COPY --from=builder --chown=node:node /usr/src/app/.cache      ./.cache
 
 ENV NODE_ENV=production
+ENV PUPPETEER_CACHE_DIR=/usr/src/app/.cache/puppeteer
 
 EXPOSE 3000
 
